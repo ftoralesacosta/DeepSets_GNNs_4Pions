@@ -1,4 +1,5 @@
 *.npy
 *.root
 *.hdf5
+*.ipynb
 build
