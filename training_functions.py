@@ -152,12 +152,13 @@ class training_generator:
                 else:
                     target_means[i] = np.nanmean(target[:,i,:])
                     target_stdevs[i] = np.nanstd(target[:,i,:])
-
+            print(self.path,' ----  ',self.input_dataset)
+            
             np.save("%s/%s_means.npy"%(self.path,self.input_dataset),input_means)
             np.save("%s/%s_stdevs.npy"%(self.path,self.input_dataset),input_stdevs)
             np.save("%s/%s_means.npy"%(self.path,self.target_dataset),target_means)
             np.save("%s/%s_stdevs.npy"%(self.path,self.target_dataset),target_stdevs)
-
+            
             self.input_means = input_means 
             self.input_stdevs = input_stdevs
             self.target_means = target_means
@@ -167,7 +168,7 @@ class training_generator:
             print("Input Stdevs = ",input_stdevs)
             print("Target Means = ",target_means)
             print("Target Stdevs = ",target_stdevs)
-
+            
             return
 
 
@@ -225,10 +226,13 @@ def preprocess_target_data(
 def get_input_scalar(file,input_dataset,path,n_batches=100,batch_size=1000):
 
     input_keys = ["E","X","Y","Z"] # match HDF5 File format
+    
     mean_file_name = "%s/%s_means.npy"%(path,input_dataset)
     stdev_file_name = "%s/%s_stdevs.npy"%(path,input_dataset)
-
+    print('__________',mean_file_name)
+    
     print("Calculating Mean and Stdev using %i batches for %s"%(n_batches,input_dataset))
+    
     with h5py.File(file, 'r') as hf:
 
         h5_input_dataset = hf[input_dataset]
@@ -241,26 +245,27 @@ def get_input_scalar(file,input_dataset,path,n_batches=100,batch_size=1000):
         for i in range(len(input_keys)):
             input_means[i]  = np.nanmean(input[:,i,:])
             input_stdevs[i] = np.nanstd (input[:,i,:])
-
+    
     np.save(mean_file_name,input_means)
     np.save(stdev_file_name,input_stdevs)
-
+    
     return input_means, input_stdevs
         
 
 def get_target_scalar(file, dataset ,path="./",n_batches=100,batch_size=1000,is_gun=True):
-
+    print('I am here hehheheheh', path)
     print("Calculating Mean and Stdev using %i batches for %s"%(n_batches,dataset))
+    
     with h5py.File(file, 'r') as hf:
 
         h5_target_dataset = hf[dataset]
         target = h5_target_dataset[:n_batches*batch_size]
-
+        
         target_keys = ["PDG","SimStat","GenStat","mcPX",
             "mcPY","mcPZ","mcMass","mcPT","mcP","mcTheta"]
         target_means = np.zeros(len(target_keys))
         target_stdevs = np.zeros(len(target_keys))
-
+        
         for i in range(len(target_keys)):
             if (is_gun):
                 target_means[i] = np.nanmean(target[:,i,0])
@@ -268,13 +273,14 @@ def get_target_scalar(file, dataset ,path="./",n_batches=100,batch_size=1000,is_
             else:
                 target_means[i] = np.nanmean(target[:,i,:])
                 target_stdevs[i] = np.nanstd(target[:,i,:])
-
+                 
+    
     np.save("%s/%s_means.npy"%(path,dataset),target_means)
     np.save("%s/%s_stdevs.npy"%(path,dataset),target_stdevs)
-
+    
     # print("Target Means = ",target_means)
     # print("Target Stdevs = ",target_stdevs)
-
+    
     return target_means,target_stdevs
 
 def scalar_from_generator(tf_dataset, nbatch_stop):
@@ -353,22 +359,22 @@ def get_np_from_gen(h5_filename,n_batches,batch_size=1000,do_norm=True):
 
     get_scalar = False
     train_generator = tf.data.Dataset.from_generator(
-        training_generator(h5_filename,'train_hcal','train_mc',batch_size,do_norm,"./",get_scalar),
+        training_generator(h5_filename,'train_hcali','train_mc',batch_size,do_norm,"./",get_scalar),
         output_shapes=(tf.TensorShape([None,None,None]),[None]),
         output_types=(tf.float64, tf.float64))
 
     val_generator = tf.data.Dataset.from_generator(
-        training_generator(h5_filename,'val_hcal','val_mc',batch_size,do_norm,"./",get_scalar),
+        training_generator(h5_filename,'val_hcali','val_mc',batch_size,do_norm,"./",get_scalar),
         output_shapes=(tf.TensorShape([None,None,None]),[None]),
         output_types=(tf.float64, tf.float64))
 
     testing_generator = tf.data.Dataset.from_generator(
-        test_generator(h5_filename,'test_hcal','test_mc',batch_size,do_norm,"./",get_scalar),
+        test_generator(h5_filename,'test_hcali','test_mc',batch_size,do_norm,"./",get_scalar),
         output_shapes=(tf.TensorShape([None,None,None])),
         output_types=(tf.float64))
 
-    base_shape = (1,1861,4)
-
+    #base_shape = (1,1861,4)
+    base_shape=(1,3248,4)
     #Training Data
     input_array = np.zeros(base_shape)
     target_array = np.zeros(1)
