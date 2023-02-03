@@ -1,0 +1,2 @@
+#!/bin/bash
+ln -s training_functions_4input.py training_functions.py
