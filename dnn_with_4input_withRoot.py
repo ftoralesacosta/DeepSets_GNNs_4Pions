@@ -11,7 +11,6 @@ from data_functions import *
 from matplotlib import style
 sys.path.insert(0, './functions')
 from training_functions import *
-
 import os
 import shutil
 
@@ -30,11 +29,10 @@ from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
 shuffle_split = True
 
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-
 from tensorflow import keras
 from tensorflow.keras import layers
 
-
+##### HERE ARE SOME THING YOU NEED TO PICK FOR YOUR CASE 
 working_dir="/home/bishnu/EIC"
 new_dir="DNN_output"
 output_path=f"{working_dir}/{new_dir}"
@@ -57,29 +55,16 @@ N_Events=200_000
 sampling_fraction=0.02
 #root_file = "/media/miguel/Elements/Data_hcali/Data1/log_uniform_pi+_20deg.root"
 root_file = "/media/miguel/Elements/Data_hcali/Data1/Jan_2023_log_space_Files/log_uniform_pi+_17deg_jan26_23.root"
-detector_name = "HcalEndcapPHitsReco" #or "HcalEndcapPInsertHitsReco"    
-ur_file = ur.open( root_file )
-ur_tree = ur_file['events']
-#cut_primary = array["MCParticles.generatorStatus"]==1   
-genPx = ur_tree.array('MCParticles.momentum.x',entrystop=N_Events)[:,2]
-genPy = ur_tree.array('MCParticles.momentum.y',entrystop=N_Events)[:,2]
-genPz = ur_tree.array('MCParticles.momentum.z',entrystop=N_Events)[:,2]
-mass = ur_tree.array("MCParticles.mass", entrystop=N_Events)[:,2]
-root_gen_P = np.sqrt(genPx*genPx + genPy*genPy + genPz*genPz)
-gen_energy=np.sqrt(root_gen_P**2 + mass**2)
+detector_name = "HcalEndcapPHitsReco" #or "HcalEndcapPInsertHitsReco"
 
-hit_e =ur_tree.array(f'{detector_name}.energy' ,entrystop=N_Events)
-PosRecoX = ur_tree.array(f'{detector_name}.position.x',entrystop=N_Events)
-PosRecoY = ur_tree.array(f'{detector_name}.position.y',entrystop=N_Events)
-PosRecoZ= ur_tree.array(f'{detector_name}.position.z',entrystop=N_Events)
-time= ur_tree.array(f'{detector_name}.time',entrystop=N_Events)
+## FOR NOW MEAN AND STANDARD DEVIATION ARE COMPUTED USING def get_mean_std(): AND
+## VALUE IS COPIED HERE
 
-# Mean and std are calculated and plugged in her for now
+log_hit=False  ## THIS OPTION IS IF YOU WOULD LIKE TO INPUT LOG10(HIT_E)
+# SET "TRUE" IF YOU LIKE TO USE LOG10 (HIT_E) FOR YOUR INPUT
 
-
-log_hit=False
 if log_hit:
-    hit_e[hit_e==0]=0.000001
+    hit_e[hit_e==0]=0.000001 ## TO AVOID THE CASE WHERE HIT_E IS ZERO 
     hit_e=np.log10(hit_e)
     gen_energy=np.log10(gen_energy)
 if log_hit==False:
@@ -102,6 +87,31 @@ std_Y = 1010.5846773983045
 mean_Z= 4407.6375918933545
 std_Z = 322.61474120326426
 
+
+
+
+## READ THE ROOT FILE
+ur_file = ur.open( root_file )
+ur_tree = ur_file['events']
+#cut_primary = array["MCParticles.generatorStatus"]==1   
+genPx = ur_tree.array('MCParticles.momentum.x',entrystop=N_Events)[:,2]
+genPy = ur_tree.array('MCParticles.momentum.y',entrystop=N_Events)[:,2]
+genPz = ur_tree.array('MCParticles.momentum.z',entrystop=N_Events)[:,2]
+mass = ur_tree.array("MCParticles.mass", entrystop=N_Events)[:,2]
+root_gen_P = np.sqrt(genPx*genPx + genPy*genPy + genPz*genPz)
+gen_energy=np.sqrt(root_gen_P**2 + mass**2)
+
+hit_e =ur_tree.array(f'{detector_name}.energy' ,entrystop=N_Events)
+PosRecoX = ur_tree.array(f'{detector_name}.position.x',entrystop=N_Events)
+PosRecoY = ur_tree.array(f'{detector_name}.position.y',entrystop=N_Events)
+PosRecoZ= ur_tree.array(f'{detector_name}.position.z',entrystop=N_Events)
+time= ur_tree.array(f'{detector_name}.time',entrystop=N_Events)
+
+# Mean and std are calculated and plugged in her for now
+
+
+
+
 # Tensorflow CallBacks                                                                                        
 lr_scheduler = tf.keras.callbacks.LearningRateScheduler(lr_decay,verbose=0)                                   
 early_stopping = tf.keras.callbacks.EarlyStopping(patience=patience)                                          
@@ -109,6 +119,8 @@ history_logger=tf.keras.callbacks.CSVLogger(output_path+"/log.csv", separator=",
 model_checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath=output_path, save_best_only=True)                     
 callbacks=[lr_scheduler, early_stopping,history_logger,batch_history(),model_checkpoint] 
 
+
+## NORMALIZE DATA AND DO ZERO PADDING TO MAKE INPUT MATRIX OF SAME DIMENSION
 normalize_hite=(hit_e-mean_hit)/std_hit
 processed_hit = pad_sequences(normalize_hite, padding='post', dtype='float64')
 
@@ -150,34 +162,42 @@ inputs4 = keras.layers.Input(shape=(input_shape,)) # your input shape for x4
 
 
 # Define the layers for processing the first input array
-x1 = layers.Dense(64, activation="relu")(inputs1)
-x1 = layers.Dense(32, activation="relu")(x1)
+x1_1 = layers.Dense(64, activation="relu")(inputs1)
+x1_2 = layers.Dense(64, activation="relu")(x1_1)
+x1_3 = layers.Dense(64, activation="relu")(x1_2)
+x1_4 = layers.Dense(64, activation="relu")(x1_3)
 
 # Define the layers for processing the second input array
-x2 = layers.Dense(64, activation="relu")(inputs2)
-x2 = layers.Dense(32, activation="relu")(x2)
+x2_1 = layers.Dense(64, activation="relu")(inputs2)
+x2_2 = layers.Dense(64, activation="relu")(x2_1)
+x2_3 = layers.Dense(64, activation="relu")(x2_2)
+x2_4 = layers.Dense(64, activation="relu")(x2_3)
 
 # Define the layers for processing the first input array
-x3 = layers.Dense(64, activation="relu")(inputs3)
-x3 = layers.Dense(32, activation="relu")(x3)
+x3_1 = layers.Dense(64, activation="relu")(inputs3)
+x3_2 = layers.Dense(64, activation="relu")(x3_1)
+x3_3 = layers.Dense(64, activation="relu")(x3_2)
+x3_4 = layers.Dense(64, activation="relu")(x3_3)
+
 
 # Define the layers for processing the second input array
-x4 = layers.Dense(64, activation="relu")(inputs4)
-x4 = layers.Dense(32, activation="relu")(x4)
+x4_1 = layers.Dense(64, activation="relu")(inputs4)
+x4_2 = layers.Dense(64, activation="relu")(x4_1)
+x4_3 = layers.Dense(64, activation="relu")(x4_2)
+x4_4 = layers.Dense(64, activation="relu")(x4_3)
 
-concat = layers.concatenate([x1, x2, x3,x4])
+
+concat = layers.concatenate([x1_4, x2_4, x3_4,x4_4])
 output_layer = tf.keras.layers.Dense(1, activation='linear')(concat)
 
 
 
 
 model = tf.keras.models.Model(inputs=[inputs1, inputs2,  inputs3, inputs4], outputs=output_layer)
-learning_rate=1e-2
 model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate), loss='mae')
 
 history=model.fit(x=[X1_train, X2_train, X3_train, X4_train], y=Y_train, epochs=N_Epochs, batch_size=batch_size,\
 callbacks=callbacks, validation_data=([X1_val, X2_val, X3_val, X4_val],Y_val))
-
 
 mypreds = model.predict([X1_test, X2_test, X3_test,X4_test])
 
